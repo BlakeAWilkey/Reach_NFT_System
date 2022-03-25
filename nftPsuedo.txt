@@ -1,0 +1,99 @@
+//Creator sets params, hashes featureMapping with a salt discloses mapping.
+
+Creator only{
+
+    Creator sets deadline, price, max, addressArray, salt, FeatureOneArray, FeatureTwoArray, FeatureThreeArray, FeatureFourArray;
+	
+	//sha256
+	hashedFeatureOne = Hash(salt, featureOne)
+	hashedFeaturesTwo = Hash(salt, featureTwo)
+	hashedFeaturesThree = Hash(salt, featureThree)
+	hashedFeaturesFour = Hash(salt, featureFour)
+
+    Creator declassifies price, hashedFeatureMappings;
+}
+
+Creator commits to deadline, price, max customers, salt, and featureMap;
+
+//customer discloses their address and pays
+
+Customer only{
+	const address = declassify(customer.address);
+	declassify(address);
+}
+
+customer.publish(address).pay(price);
+
+Creator only{
+
+	int currCustomers = 0;
+
+	While currTime < deadline or currCustomers < max {
+		
+		//add currAddress to Array
+
+	}
+	
+
+	For each address in addressArray{
+		CreateNFT(address)
+	}
+
+	declassify(salt, featureMappings);
+}
+exit
+
+
+function CreateNFT(bytes address){
+	bytes featureOne;
+	bytes featureTwo;
+	bytes featureThree;
+	bytes featureFour;
+	for(i : 0 to 8){
+		featureOne.append(address[i])
+	}
+
+	for(i : 8 to 16){
+		featureTwo.append(address[i])
+	}
+	
+	for(i : 16 to 24){
+		featureThree.append(address[i])
+	}
+	
+	for(i : 24 to 32){
+		featureFour.append(address[i])
+	}
+	
+	//contingent on parseInt
+
+	const intOne = parseInt(featureOne) % 10
+	const intTwo = parseInt(featureTwo) % 10
+	const intThree = parseInt(featureThree) % 10
+	const intFour = parseInt(featureFour) % 10
+
+
+NFT = {
+	Creator: Creator.address, 
+	AssetName: "RandomNFT",
+	total: 1,
+	Decimals: 0,
+	DefaultFrozen: false,
+	url: "...", // Should point to fOne:FeatureOneArray[intOne], fTwo: FeatureTwoArray[intTwo],FThree: FeatureThreeArray[intThree],FFour: FeatureFourArray[intFour]
+	metaDataHash: " ", //
+	reserveAddress: address
+
+};
+	
+}
+
+
+
+
+
+//TODO:
+//verify immutable and mutable nft params
+//verify salting of hashedFeatures
+//veryify customer declassifying address
+
+
