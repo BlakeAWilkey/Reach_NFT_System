@@ -2,23 +2,35 @@
 
 export const main = Reach.App(()=>{
     const Creator = Participant('Creator', {
-        //fill in Creator fields
-
+        price: UInt,
+        deadline: UInt,
+        max: UInt,
+        salt: Bytes(8),
+        fOne: Array(Bytes(10), 2),
+    
     });
     const Customer = ParticipantClass('Customer', {
-
-        //fill in Customer fields
-
+        payPrice: Fun([UInt],Null),
     });
     init();
-    Creator.only(() => {
-    //set params    
-    });
-    Customer.only(() => { 
-    //pay contract
-    });
-    Creator.only(() => {
-    //add address to array and mint nft when deadline is ended
-    });
 
+
+    Creator.only(() => {
+        const price = declassify(interact.price);
+    });
+    Creator.publish(price);
+    commit();
+
+    Customer.only(() => { 
+        interact.payPrice(price);
+    });
+    Customer.pay(price);
+    transfer(price).to(Creator);
+    commit();
+
+
+
+    Creator.only(() => {
+        
+    });
 });
