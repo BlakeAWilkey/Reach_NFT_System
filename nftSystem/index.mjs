@@ -1,7 +1,7 @@
 import { loadStdlib } from '@reach-sh/stdlib';
 import * as backend from './build/index.main.mjs';
 const stdlib = loadStdlib();
-const startingBalance = stdlib.parseCurrency(100);
+const startingBalance = stdlib.parseCurrency(10000);
 
 const accCreator = await stdlib.newTestAccount(startingBalance);
 const accCustomer = await stdlib.newTestAccount(startingBalance);
@@ -15,6 +15,11 @@ const getBalance = async (who) => fmt(await stdlib.balanceOf(who));
 const beforeCreator = await getBalance(accCreator);
 const beforeCustomer = await getBalance(accCustomer);
 
+const member = (who) =>({
+  informTimeout:() => {
+    console.log(`${who} observed a timeout`);
+  },
+});
 
 
 await Promise.all([
@@ -24,12 +29,16 @@ await Promise.all([
     max:1,
     salt:"A3YR0EG2",
     fOne: ["RED","BLUE"],
-
   }),
   ctcCustomer.p.Customer({
-    payPrice:(p) => {
-        console.log(`Customer pays the price of ${fmt(p)}.`);
+    joinPool:(p) => {
+        console.log(`Customer attempts to join the pool`);
+        return true;
     },
+    shouldJoin:() => { 
+      return true;
+    },
+   
   }),
 ]);
 
