@@ -21,22 +21,32 @@ const member = (who) =>({
   },
 });
 
+var joinedAddress = {};
+
 
 await Promise.all([
   ctcCreator.p.Creator({
     price: stdlib.parseCurrency(1),
     deadline: 10,
-    max:1,
+    max: 1,
     salt:"A3YR0EG2",
     fOne: ["RED","BLUE"],
   }),
-  ctcCustomer.p.Customer({
+  ctcCustomer.p.Customer({ 
     joinPool:(p) => {
         console.log(`Customer attempts to join the pool`);
         return true;
     },
-    shouldJoin:() => { 
-      return true;
+    shouldJoin:(address) => {
+      if(!joinedAddress.find(address)){
+        joinedAddress.push(address);
+        return true;
+      }
+      return false;
+      
+    },
+    getAdd:() => {
+      return accCustomer.getAddress();
     },
    
   }),

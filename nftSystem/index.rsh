@@ -9,49 +9,51 @@ export const main = Reach.App(()=>{
         max: UInt,
         salt: Bytes(8),
         fOne: Array(Bytes(10), 2),
-        acceptReservation: Fun([UInt],Null),
+        //acceptReservation: Fun([UInt],Null),
     
     });
     const Customer = ParticipantClass('Customer', {
         joinPool: Fun([UInt],Bool),
-        shouldJoin: Fun([],Bool),
+        shouldJoin: Fun([Address],Bool),
+        getAdd: Fun([],Address),
     });
     
     init();
     
     Creator.publish();
     commit();
+
     Creator.only(() => {
         const price = declassify(interact.price);
         const deadline = declassify(interact.deadline);
+        //const addArray =  declassify(interact.max); //Array(Bytes(32), decinteract.max);
     });
  
     Creator.publish(price,deadline);
 
     const [ timeRemaining, keepGoing ] = makeDeadline(deadline);
 
-    const [joined] = 
-    parallelReduce([0])
+    const joined = 
+    parallelReduce(0)
     .invariant(balance() == (joined * price))
     .while( keepGoing() )
     .case(Customer, () => ({
         msg:declassify(interact.joinPool(price)),
-        when:declassify(interact.shouldJoin()),
+        when:declassify(interact.shouldJoin(interact.getAdd())),
     }),
     (_) => price,
     (x) => {
-        return [joined + 1];})
+        //Add address to array, increment joined by one
+        
+        return joined + 1;})
     .timeout(timeRemaining(),()=>{
-        Anybody.publish();
-        return [joined];
+        Customer.publish();
+        return joined;
     });
     transfer(balance()).to(Creator);
     commit();
     
-    //This step should be recurring over the deaadline
-    //That is, many customers should be able to join pool over the deadline
     
-
 
     //Customer.pay(price).timeout(relativeTime(deadline), ()=>{exit()});
     //transfer(price).to(Creator);
