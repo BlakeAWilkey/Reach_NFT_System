@@ -21,7 +21,7 @@ const member = (who) =>({
   },
 });
 
-var joinedAddress = {};
+var joinedAddress = new Array();
 
 
 await Promise.all([
@@ -38,10 +38,12 @@ await Promise.all([
         return true;
     },
     shouldJoin:(address) => {
-      if(!joinedAddress.find(address)){
+      if(!joinedAddress.find(x => x == address)){
+        console.log(`Customer ${address} joined the pool`);
         joinedAddress.push(address);
         return true;
       }
+      console.log(`Customer ${address} didn't join the pool`);
       return false;
       
     },

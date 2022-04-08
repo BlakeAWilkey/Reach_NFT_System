@@ -26,11 +26,11 @@ export const main = Reach.App(()=>{
     Creator.only(() => {
         const price = declassify(interact.price);
         const deadline = declassify(interact.deadline);
-        //const addArray =  declassify(interact.max); //Array(Bytes(32), decinteract.max);
+        const m =  declassify(interact.max); 
     });
- 
-    Creator.publish(price,deadline);
 
+    Creator.publish(price,deadline,m);
+    
     const [ timeRemaining, keepGoing ] = makeDeadline(deadline);
 
     const joined = 
