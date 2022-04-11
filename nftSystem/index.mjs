@@ -24,11 +24,7 @@ const beforeCreator = await getBalance(accCreator);
 
 //const beforeCustomer = await getBalance(accCustomer);
 
-const member = (who) =>({
-  informTimeout:() => {
-    console.log(`${who} observed a timeout`);
-  },
-});
+
 
 var joinedAddress = new Array();
 
@@ -67,6 +63,11 @@ await Promise.all([
     },
     getAdd:() => {
       return accCustomer.getAddress();
+    },
+    showPurchase: (addr) => {
+      if (stdlib.addressEq(addr, accCustomer)) {
+        console.log(`Buyer ${i} actually bought a ticket.`);
+      }
     }
     });
   })

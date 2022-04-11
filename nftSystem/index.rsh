@@ -19,6 +19,7 @@ export const main = Reach.App(()=>{
         ...Common,
         shouldJoin: Fun([Address],Bool),
         getAdd: Fun([],Address),
+        showPurchase:Fun([Address],Null),
     });
     
     init();
@@ -48,15 +49,15 @@ export const main = Reach.App(()=>{
     .invariant(balance() == (joined * price))
     .while( keepGoing() )
     .case(Customer, () => ({
-        when:declassify(interact.shouldJoin(interact.getAdd())),
+        when: declassify(interact.shouldJoin(interact.getAdd())),
     }),
     (_) => price,
-    (_) => {
-        
-
+    (x) => {
+        const customer = this;
+        Customer.only(()=>interact.showPurchase(customer));
         return [joined + 1];})
     .timeout(timeRemaining(),()=>{
-        Creator.publish();
+        Anybody.publish();
         return [joined];
     });
     transfer(balance()).to(Creator);
