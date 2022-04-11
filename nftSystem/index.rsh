@@ -1,24 +1,33 @@
 'reach 0.1';
 
 
+const Common = {
+    showOutcome: Fun([UInt], Null),
+  };
+
 export const main = Reach.App(()=>{
 
     const Creator = Participant('Creator', {
+        ...Common,
         price: UInt,
         deadline: UInt,
         max: UInt,
         salt: Bytes(8),
         fOne: Array(Bytes(10), 2),
-        //acceptReservation: Fun([UInt],Null),
-    
     });
     const Customer = ParticipantClass('Customer', {
-        joinPool: Fun([UInt],Bool),
+        ...Common,
         shouldJoin: Fun([Address],Bool),
         getAdd: Fun([],Address),
     });
     
     init();
+
+    const showOutcome = (joined) => () => {
+        each([Creator, Customer], () =>
+          interact.showOutcome(joined)); 
+    };
+
     
     Creator.publish();
     commit();
@@ -31,34 +40,29 @@ export const main = Reach.App(()=>{
 
     Creator.publish(price,deadline,m);
     
-    const [ timeRemaining, keepGoing ] = makeDeadline(deadline);
+    const [ timeRemaining, keepGoing ] = makeDeadline(deadline); //set deadline to end in set number of blocks from Creator
 
-    const joined = 
-    parallelReduce(0)
+    
+    const [ joined ] = 
+    parallelReduce([0])
     .invariant(balance() == (joined * price))
     .while( keepGoing() )
     .case(Customer, () => ({
-        msg:declassify(interact.joinPool(price)),
         when:declassify(interact.shouldJoin(interact.getAdd())),
     }),
     (_) => price,
-    (x) => {
-        //Add address to array, increment joined by one
+    (_) => {
         
-        return joined + 1;})
+
+        return [joined + 1];})
     .timeout(timeRemaining(),()=>{
-        Customer.publish();
-        return joined;
+        Creator.publish();
+        return [joined];
     });
     transfer(balance()).to(Creator);
     commit();
-    
-    
 
-    //Customer.pay(price).timeout(relativeTime(deadline), ()=>{exit()});
-    //transfer(price).to(Creator);
-    //commit();
-    //
-    //const [ timeRemaining, keepGoing ] = makeDeadline(deadline);
-    
+    showOutcome(joined)();
+
+    exit();
 });
