@@ -1,69 +1,74 @@
 'reach 0.1';
 
 
-const Common = {
-    showOutcome: Fun([UInt], Null),
-  };
+
 
 export const main = Reach.App(()=>{
 
     const Creator = Participant('Creator', {
-        ...Common,
-        price: UInt,
-        deadline: UInt,
-        max: UInt,
+        raffleReady: Fun([],Null),
+        getParams: Fun([],Object({
+            price: UInt,
+            deadline: UInt,
+            max: UInt,
+            fOne: Array(Bytes(10), 2),
+        })),
+        mintNFTs:Fun([Address],Token),
         salt: Bytes(8),
-        fOne: Array(Bytes(10), 2),
     });
-    const Customer = ParticipantClass('Customer', {
-        ...Common,
-        shouldJoin: Fun([Address],Bool),
-        getAdd: Fun([],Address),
-        showPurchase:Fun([Address],Null),
+    const Customer = API('Customer', {
+        joinPool: Fun([UInt],Bool),
     });
     
     init();
-
-    const showOutcome = (joined) => () => {
-        each([Creator, Customer], () =>
-          interact.showOutcome(joined)); 
-    };
-
     
     Creator.publish();
     commit();
 
     Creator.only(() => {
-        const price = declassify(interact.price);
-        const deadline = declassify(interact.deadline);
-        const m =  declassify(interact.max); 
+        const {price,deadline,max,fOne} = declassify(interact.getParams());
     });
-
-    Creator.publish(price,deadline,m);
     
+    Creator.publish(price,deadline,max,fOne);
+
+
     const [ timeRemaining, keepGoing ] = makeDeadline(deadline); //set deadline to end in set number of blocks from Creator
-
     
-    const [ joined ] = 
+    Creator.interact.raffleReady();//starts customers creating contracts and attempting to reserve a spot in the pool
+
+
+    const [numJoined] = //Takes payments from customers in exchange for a spot in the pool
     parallelReduce([0])
-    .invariant(balance() == (joined * price))
+    .invariant(balance() == (numJoined * price))
     .while( keepGoing() )
-    .case(Customer, () => ({
-        when: declassify(interact.shouldJoin(interact.getAdd())),
-    }),
-    (_) => price,
-    (x) => {
-        const customer = this;
-        Customer.only(()=>interact.showPurchase(customer));
-        return [joined + 1];})
+    .api(Customer.joinPool, 
+        ((p) =>{ assume(p == price, "Price not correct"); assume(max >= numJoined + 1, "No more space"); }),
+        ((p) =>p),
+        ((p, notify)=>{
+            require(p == price,"Price not correct");
+            require(max >= numJoined + 1,"No more space");
+            notify(true); 
+            
+            return [numJoined + 1];
+        })
+        
+    )
     .timeout(timeRemaining(),()=>{
         Anybody.publish();
-        return [joined];
+        return [numJoined];
     });
     transfer(balance()).to(Creator);
     commit();
 
-    showOutcome(joined)();
+    Creator.only(()=>{
+        //Creator must now request minted NFTs for each joined Address
+        //Addresses are currently stored in an array on the frontend. 
+        //ISSUE: We wont be able to store addresses on the backend without using sets/maps(Dangerous on Algorand since they are stored in local state)
+            //Solution1: We mint nft's in the parallel reduce immediately after the customer pays
+            //Solution2: Creator pings a frontend function multiple times send individual addresses (Possibly not safe similar to maps)
+            //Solution3: We use maps
+            //Solution4: offchain storage
 
+    });
     exit();
 });
