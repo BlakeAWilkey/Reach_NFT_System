@@ -57,18 +57,16 @@ const startCustomers= async () => {
 
 const startClaim= async () => {
   const runClaim = async (acc,ctc,who) => {
-      //try{
-        //checks array to see if the account has already joined the pool
-        const claimed = await ctc.apis.Customer.retrieveMint(joinedAddress[0]);
+      try{
         
-        
-        
-       // console.log(`${who} claimed their nft`);
-      //}catch(err){
-      //  console.log(`${who} did not claim an nft`); 
-      //}
+        const claimed = await ctc.apis.Customer.retrieveMint(acc);
 
-  }; 
+        console.log(`${who} claimed their nft`);
+      }catch(err){
+        console.log(`${who} did not claim an nft`); 
+      }
+  };
+
   
 let i = 0;
   for(const account of accounts){ //iterates over all accounts associates a name with them and calls run customer for them
@@ -82,6 +80,7 @@ let i = 0;
       await stdlib.wait(1);
   }
 };
+
 
 
 await Promise.all([

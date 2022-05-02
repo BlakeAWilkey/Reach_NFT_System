@@ -16,8 +16,8 @@ export const main = Reach.App(()=>{
         startMint: Fun([],Null),
     });
     const Customer = API('Customer', {
-        joinPool: Fun([UInt],Bool),
-        retrieveMint: Fun([Address],Bool),
+        joinPool: Fun([UInt], Bool),
+        retrieveMint: Fun([Address], Bool),
     });
     
     init();
@@ -47,7 +47,7 @@ export const main = Reach.App(()=>{
     .while( keepGoing() )
     .api(Customer.joinPool, 
         ((p) =>{ assume(p == price, "Price not correct"); assume(max >= numJoined + 1, "No more space"); }),
-        ((p) =>p),
+        ((p) => p),
         ((p, notify)=>{
             require(p == price,"Price not correct");
             require(max >= numJoined + 1,"No more space");
@@ -60,7 +60,6 @@ export const main = Reach.App(()=>{
         Anybody.publish();
         return [numJoined];
     });
-    
     const match = (who) => {
         const index = pool[who];
         switch(index){
@@ -68,8 +67,13 @@ export const main = Reach.App(()=>{
             case Some: return true;
         };
     };
-    Creator.interact.startMint();
+
     const [ timeRemainingTwo, keepGoingTwo] = makeDeadline(deadline); 
+
+    Creator.interact.startMint();
+
+    
+
     const [returned] =
         parallelReduce([0])
         .invariant(balance() == numJoined*price)
@@ -77,11 +81,12 @@ export const main = Reach.App(()=>{
         .api(Customer.retrieveMint,
             ((p)=>{assume(match(this),"No NFT for you");}),
             ((p)=> 0),
-            ((p, notify)=>{
+            ((p, notify)=>{ 
                 require(match(this),"No NFT for you");
                 notify(true);
                 //minting logic
                 return [returned+1];
+
             })
         ).timeout(timeRemainingTwo(),()=>{
             Anybody.publish()
@@ -92,19 +97,6 @@ export const main = Reach.App(()=>{
 
     transfer(balance()).to(Creator);
     commit();
-
-
-    Creator.only(()=>{
-
-
-        //Creator must now request minted NFTs for each joined Address
-        //Addresses are currently stored in an array on the frontend. 
-        //ISSUE: We wont be able to store addresses on the backend without using sets/maps(Dangerous on Algorand since they are stored in local state)
-            //Solution1: We mint nft's in the parallel reduce immediately after the customer pays
-            //Solution2: Creator pings a frontend function multiple times send individual addresses (Possibly not safe similar to maps)
-            //Solution3: We use maps
-            //Solution4: offchain storage
-
-    });
+    
     exit();
 });
