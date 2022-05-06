@@ -13,26 +13,29 @@ export const main = Reach.App(()=>{
             max: UInt,
         })),
         salt: Bytes(8),
-        startMint: Fun([],Null),
+        startMint: Fun([Token],Null),
     });
     const Customer = API('Customer', {
         joinPool: Fun([UInt], Bool),
         retrieveMint: Fun([Address], Bool),
     });
+
     
+    const TLE = Events({tokenLaunch: []});
     init();
     
+
     Creator.publish();
     commit();
-
+    
+    
     Creator.only(() => {
         const {price,deadline,max} = declassify(interact.getParams());
+        const amount = 1;
+        assume(max != 0 );
+        
     });
-    Creator.publish(price,deadline,max);
-
-    const isWinner = (who)=>{
-        return true;
-    };
+    Creator.publish(price,deadline,max,amount);
 
     const pool = new Map(UInt);
     const [ timeRemaining, keepGoing ] = makeDeadline(deadline); //set deadline to end in set number of blocks from Creator
@@ -60,6 +63,11 @@ export const main = Reach.App(()=>{
         Anybody.publish();
         return [numJoined];
     });
+    if(numJoined == 0){
+        commit();
+        exit();
+    }
+   
     const match = (who) => {
         const index = pool[who];
         switch(index){
@@ -67,12 +75,21 @@ export const main = Reach.App(()=>{
             case Some: return true;
         };
     };
-
-    const [ timeRemainingTwo, keepGoingTwo] = makeDeadline(deadline); 
-
-    Creator.interact.startMint();
-
     
+    
+    const tok = new Token({supply: max});//creates token of supply max
+    
+    
+    
+    TLE.tokenLaunch();
+    const am = max/(numJoined+max); // the amount they get is the set max number of members divided by that number + the number that joined
+    commit();
+
+
+    Creator.publish();
+    
+    const [ timeRemainingTwo, keepGoingTwo] = makeDeadline(deadline); 
+    Creator.interact.startMint(tok);
 
     const [returned] =
         parallelReduce([0])
@@ -83,20 +100,33 @@ export const main = Reach.App(()=>{
             ((p)=> 0),
             ((p, notify)=>{ 
                 require(match(this),"No NFT for you");
+                
                 notify(true);
-                //minting logic
+                
+               transfer(am,tok).to(this);
+                
+               
+                
                 return [returned+1];
 
             })
         ).timeout(timeRemainingTwo(),()=>{
             Anybody.publish()
+            return[returned]; 
+        });
+     
+    transfer(balance()).to(Creator);  
 
-            return [returned]; 
-        });  
-
-
-    transfer(balance()).to(Creator);
+    // Infinite loop to keep tokens alive
+    var lhs = true;
+    {const t = true;}
+    invariant(balance() == 0);
+    while(true){
+        commit();
+        Creator.publish();
+        continue;
+    } 
     commit();
-    
+   
     exit();
 });

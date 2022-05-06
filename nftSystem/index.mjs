@@ -55,15 +55,15 @@ const startCustomers= async () => {
   
 };
 
-const startClaim= async () => {
-  const runClaim = async (acc,ctc,who) => {
+const startClaim= async (_tok) => {
+  const runClaim = async (acc,ctc,who,_tok) => {
       try{
-        
+        await contracts[i].e.tokenLaunch.next();
+        await acc.tokenAccept(_tok);
         const claimed = await ctc.apis.Customer.retrieveMint(acc);
-
-        console.log(`${who} claimed their nft`);
+        console.log(`${who} claimed their tokens`);
       }catch(err){
-        console.log(`${who} did not claim an nft`); 
+        console.log(`${who} did not claim their tokens`); 
       }
   };
 
@@ -71,7 +71,7 @@ const startClaim= async () => {
 let i = 0;
   for(const account of accounts){ //iterates over all accounts associates a name with them and calls run customer for them
     const who = `Customer #${i}`; 
-    await runClaim(account, contracts[i], who);
+    await runClaim(account, contracts[i], who,_tok);
     //each account tries to join twice but should only join once!
     i++;
   }
@@ -89,14 +89,16 @@ await Promise.all([
     raffleReady: ()=>{
       startCustomers();
     },
-    startMint: ()=>{
-      startClaim();
+    startMint: (_tok)=>{
+      startClaim(_tok);
       
     },
     getParams: ()=>{ return{
       price: stdlib.parseCurrency(10),
       deadline: 10,
       max: 4,
+      decimals: 0,
+      amount: 1,
     }},
   }),
   ]
