@@ -55,11 +55,9 @@ const startCustomers= async () => {
   
 };
 
-const startClaim= async (_tok) => {
-  const runClaim = async (acc,ctc,who,_tok) => {
+const startClaim= async () => {
+  const runClaim = async (acc,ctc,who,) => {
       try{
-        await contracts[i].e.tokenLaunch.next();
-        await acc.tokenAccept(_tok);
         const claimed = await ctc.apis.Customer.retrieveMint(acc);
         console.log(`${who} claimed their tokens`);
       }catch(err){
@@ -71,7 +69,7 @@ const startClaim= async (_tok) => {
 let i = 0;
   for(const account of accounts){ //iterates over all accounts associates a name with them and calls run customer for them
     const who = `Customer #${i}`; 
-    await runClaim(account, contracts[i], who,_tok);
+    await runClaim(account, contracts[i], who);
     //each account tries to join twice but should only join once!
     i++;
   }
@@ -81,6 +79,34 @@ let i = 0;
   }
 };
 
+const opt = async(_tok)=>{
+  let i = 0;
+  await accCreator.tokenAccept(_tok);
+  for(const account of accounts){
+    try{
+      await account.tokenAccept(_tok);
+    }catch(err){
+      console.log("couldn't accept token");
+    }
+    i++;
+  }
+}
+
+const mintNFT = async(accRetrieved)=>{
+  try{
+    const nft = await stdlib.launchToken(accCreator, "Blake", "nft", { supply: 1});
+    await accCreator.tokenAccept(nft.id);
+    for(const account of accounts){
+      if(account.getAddress() == accRetrieved){
+        await account.tokenAccept(nft.id);
+        await stdlib.transfer(accCreator,account,1,nft.id);
+        console.log(`Address Found and Transferred`);
+      }
+    }
+  }catch(err){
+    console.log("NFT not minted Frontend");
+  }
+}
 
 
 await Promise.all([
@@ -89,16 +115,26 @@ await Promise.all([
     raffleReady: ()=>{
       startCustomers();
     },
-    startMint: (_tok)=>{
-      startClaim(_tok);
+    notifyEnd: ()=>{
+      console.log(`Minting has Ended, Press Ctrl + C to terminate program`);
+    },
+    startMint: ()=>{
+      startClaim();
       
+    },
+    newToken: (accRetrieve)=>{
+      return mintNFT(accRetrieve);
+    },
+    showTokenOptIn:(tok)=>{
+      console.log("here");
+      opt(tok);
     },
     getParams: ()=>{ return{
       price: stdlib.parseCurrency(10),
       deadline: 10,
-      max: 4,
-      decimals: 0,
-      amount: 1,
+      max: stdlib.parseCurrency(4),
+      
+      
     }},
   }),
   ]

@@ -1,5 +1,7 @@
 'reach 0.1';
 
+//import { simTokenDestroy } from "@reach-sh/stdlib/dist/types/shared_backend";
+
 
 
 
@@ -11,9 +13,14 @@ export const main = Reach.App(()=>{
             price: UInt,
             deadline: UInt,
             max: UInt,
+            
         })),
         salt: Bytes(8),
-        startMint: Fun([Token],Null),
+        startMint: Fun([],Null),
+        showTokenOptIn: Fun([Token],Null),
+        notifyEnd: Fun([],Null),
+        notifyMint: Fun([],Null),
+        newToken:Fun([Address],Null),
     });
     const Customer = API('Customer', {
         joinPool: Fun([UInt], Bool),
@@ -21,22 +28,22 @@ export const main = Reach.App(()=>{
     });
 
     
-    const TLE = Events({tokenLaunch: []});
+  
     init();
     
+
 
     Creator.publish();
     commit();
     
-    
     Creator.only(() => {
         const {price,deadline,max} = declassify(interact.getParams());
-        const amount = 1;
-        assume(max != 0 );
+        const amount = 6;
+        
         
     });
-    Creator.publish(price,deadline,max,amount);
-
+    Creator.publish(price,deadline,max);
+    
     const pool = new Map(UInt);
     const [ timeRemaining, keepGoing ] = makeDeadline(deadline); //set deadline to end in set number of blocks from Creator
     
@@ -75,21 +82,14 @@ export const main = Reach.App(()=>{
             case Some: return true;
         };
     };
-    
-    
-    const tok = new Token({supply: max});//creates token of supply max
-    
-    
-    
-    TLE.tokenLaunch();
-    const am = max/(numJoined+max); // the amount they get is the set max number of members divided by that number + the number that joined
+
+     // the amount they get is the set max number of members divided by that number + the number that joined
     commit();
-
-
+    
     Creator.publish();
     
     const [ timeRemainingTwo, keepGoingTwo] = makeDeadline(deadline); 
-    Creator.interact.startMint(tok);
+    Creator.interact.startMint();
 
     const [returned] =
         parallelReduce([0])
@@ -99,14 +99,10 @@ export const main = Reach.App(()=>{
             ((p)=>{assume(match(this),"No NFT for you");}),
             ((p)=> 0),
             ((p, notify)=>{ 
-                require(match(this),"No NFT for you");
-                
+                require(match(this),"No NFT for you");   
                 notify(true);
-                
-               transfer(am,tok).to(this);
-                
-               
-                
+                //transfer(am,tok).to(this);
+                Creator.interact.newToken(this);
                 return [returned+1];
 
             })
@@ -115,17 +111,10 @@ export const main = Reach.App(()=>{
             return[returned]; 
         });
      
-    transfer(balance()).to(Creator);  
-
+    transfer(balance()).to(Creator); 
+    Creator.interact.notifyEnd(); 
+    
     // Infinite loop to keep tokens alive
-    var lhs = true;
-    {const t = true;}
-    invariant(balance() == 0);
-    while(true){
-        commit();
-        Creator.publish();
-        continue;
-    } 
     commit();
    
     exit();
