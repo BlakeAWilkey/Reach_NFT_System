@@ -18,8 +18,6 @@ export const main = Reach.App(()=>{
         retrieveMint: Fun([Address], Bool),
     });
 
-    
-  
     init();
  
     Creator.publish();
@@ -86,7 +84,7 @@ export const main = Reach.App(()=>{
             ((p, notify)=>{ 
                 require(matchJoined(this),"No NFT for you");   
                 notify(true);
-                Creator.interact.newToken(this);
+                Creator.interact.newToken(this); //mint is done on frontend
                 delete pool[this];
                 return [returned+1];
                 

@@ -13,7 +13,6 @@ const getBalance = async (who) => fmt(await stdlib.balanceOf(who));
 
 const beforeCreator = await getBalance(accCreator);
 
-
 const accounts = await Promise.all(Array.from({length:5},()=> stdlib.newTestAccount(startingBalance))); 
 
 let done = false;
@@ -90,7 +89,7 @@ const opt = async(_tok)=>{
 
 const mintNFT = async(accRetrieved)=>{
   try{
-    const nft = await stdlib.launchToken(accCreator, "UniqueTokenFromCreator", "NFT", { supply: 1});
+    const nft = await stdlib.launchToken(accCreator, `Unique${Math.floor(Math.random()*100)}TokenFromCreator`, "NFT", { supply: 1});
     await accCreator.tokenAccept(nft.id);
     for(const account of accounts){ //gets account associated with given address
       if(account.getAddress() == accRetrieved){
