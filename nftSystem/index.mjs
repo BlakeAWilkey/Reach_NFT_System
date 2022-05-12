@@ -13,30 +13,23 @@ const getBalance = async (who) => fmt(await stdlib.balanceOf(who));
 
 const beforeCreator = await getBalance(accCreator);
 
-var joinedAddress = new Array();
 
 const accounts = await Promise.all(Array.from({length:5},()=> stdlib.newTestAccount(startingBalance))); 
 
 let done = false;
-const customers = [];
-const contracts = [];
+
+const map = new Map();
+
 
 //startCustomers creates contracts for each account and has each of them attempt to pay and join the pool
 
 const startCustomers= async () => {
     const runCustomer = async (acc,who) => {
-        const ctc = acc.contract(backend, ctcInfo);
-        contracts.push(ctc);
         try{
-          if(!joinedAddress.find(x=>x==acc.getAddress())){ //checks array to see if the account has already joined the pool
+          const ctc = acc.contract(backend, ctcInfo);
           const joined = await ctc.apis.Customer.joinPool(stdlib.parseCurrency(10));
-          
-          joinedAddress.push(acc.getAddress()); 
-          
           console.log(`${who} joined the pool!`);
-          }else{  
-            throw err; // throws an error on multiple join attempts
-          }
+          map.set(acc,ctc);
         }catch(err){
           console.log(`${who} failed to join the pool`); 
         }
@@ -49,16 +42,18 @@ const startCustomers= async () => {
       const who = `Customer #${i}`;
       account.setDebugLabel(who); 
       await runCustomer(account,who);
-      await runCustomer(account,who); //each account tries to join twice but should only join once!
+      await runCustomer(account,who);//Fails! Each account can only join once. Should only create one contract per account as a result
+
       i++;
     }
   
 };
 
-const startClaim= async () => {
+const startClaim= async () => { //starts the claim process for customer contracts
   const runClaim = async (acc,ctc,who,) => {
       try{
         const claimed = await ctc.apis.Customer.retrieveMint(acc);
+        
         console.log(`${who} claimed their tokens`);
       }catch(err){
         console.log(`${who} did not claim their tokens`); 
@@ -69,8 +64,9 @@ const startClaim= async () => {
 let i = 0;
   for(const account of accounts){ //iterates over all accounts associates a name with them and calls run customer for them
     const who = `Customer #${i}`; 
-    await runClaim(account, contracts[i], who);
-    //each account tries to join twice but should only join once!
+    await runClaim(account, map.get(account), who);
+    await runClaim(account, map.get(account), who); //Fails! Each Account can only claim once!
+    
     i++;
   }
 
@@ -94,13 +90,13 @@ const opt = async(_tok)=>{
 
 const mintNFT = async(accRetrieved)=>{
   try{
-    const nft = await stdlib.launchToken(accCreator, "Blake", "nft", { supply: 1});
+    const nft = await stdlib.launchToken(accCreator, "UniqueTokenFromCreator", "NFT", { supply: 1});
     await accCreator.tokenAccept(nft.id);
-    for(const account of accounts){
+    for(const account of accounts){ //gets account associated with given address
       if(account.getAddress() == accRetrieved){
         await account.tokenAccept(nft.id);
         await stdlib.transfer(accCreator,account,1,nft.id);
-        console.log(`Address Found and Transferred`);
+        console.log(`Account ${await account.getAddress()} now has ${await stdlib.balanceOf(account,nft.id)} ${nft.name}`);
       }
     }
   }catch(err){
@@ -133,9 +129,8 @@ await Promise.all([
       price: stdlib.parseCurrency(10),
       deadline: 10,
       max: stdlib.parseCurrency(4),
-      
-      
     }},
+    
   }),
   ]
 );
